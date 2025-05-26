@@ -173,9 +173,6 @@ button:hover {
     color: #666;
 }
 
-/* Существующие стили остаются... */
-
-/* Новые стили для последнего города и истории */
 .last-city-card {
     background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
     color: white;
@@ -189,6 +186,7 @@ button:hover {
 }
 
 .last-city-card p {
+    color: white;
     margin: 0;
     flex: 1;
 }

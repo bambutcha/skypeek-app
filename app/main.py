@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func, desc
 from app.weather_service import weather_service
 from app.database import get_db
 from app.dependencies import get_or_create_user
@@ -111,6 +112,110 @@ async def get_last_searched_city(
         "last_city": last_search.city,
         "searched_at": last_search.searched_at
     }
+
+@app.get("/api/stats")
+async def get_search_statistics(db: Session = Depends(get_db)):
+    """Получить статистику поисков по городам"""
+    
+    # Группируем по городам и считаем количество поисков
+    city_stats = db.query(
+        SearchHistory.city,
+        func.count(SearchHistory.id).label('search_count'),
+        func.max(SearchHistory.searched_at).label('last_searched')
+    ).group_by(
+        SearchHistory.city
+    ).order_by(
+        desc('search_count')
+    ).limit(20).all()
+    
+    # Общая статистика
+    total_searches = db.query(func.count(SearchHistory.id)).scalar()
+    total_users = db.query(func.count(User.id)).scalar()
+    
+    # Статистика по дням (последние 7 дней)
+    from datetime import datetime, timedelta
+    seven_days_ago = datetime.now() - timedelta(days=7)
+    
+    daily_stats = db.query(
+        func.date(SearchHistory.searched_at).label('date'),
+        func.count(SearchHistory.id).label('searches')
+    ).filter(
+        SearchHistory.searched_at >= seven_days_ago
+    ).group_by(
+        func.date(SearchHistory.searched_at)
+    ).order_by('date').all()
+    
+    return {
+        "overview": {
+            "total_searches": total_searches,
+            "total_users": total_users,
+            "unique_cities": len(city_stats)
+        },
+        "top_cities": [
+            {
+                "city": stat.city,
+                "search_count": stat.search_count,
+                "last_searched": stat.last_searched
+            }
+            for stat in city_stats
+        ],
+        "daily_stats": [
+            {
+                "date": stat.date.strftime("%Y-%m-%d"),
+                "searches": stat.searches
+            }
+            for stat in daily_stats
+        ]
+    }
+
+@app.get("/api/stats/city/{city_name}")
+async def get_city_statistics(city_name: str, db: Session = Depends(get_db)):
+    """Получить детальную статистику по конкретному городу"""
+    
+    # Основная статистика по городу
+    city_searches = db.query(SearchHistory).filter(
+        SearchHistory.city.ilike(f"%{city_name}%")
+    ).all()
+    
+    if not city_searches:
+        raise HTTPException(status_code=404, detail=f"Статистика для города '{city_name}' не найдена")
+    
+    # Подсчеты
+    total_searches = len(city_searches)
+    unique_users = len(set(search.user_id for search in city_searches))
+    
+    # Средние значения погоды
+    avg_temp = sum(search.temperature for search in city_searches) / total_searches
+    avg_humidity = sum(search.humidity for search in city_searches) / total_searches
+    avg_wind = sum(search.wind_speed for search in city_searches) / total_searches
+    
+    # Самые частые описания погоды
+    from collections import Counter
+    weather_descriptions = Counter(search.description for search in city_searches)
+    
+    return {
+        "city": city_name,
+        "statistics": {
+            "total_searches": total_searches,
+            "unique_users": unique_users,
+            "first_search": min(search.searched_at for search in city_searches),
+            "last_search": max(search.searched_at for search in city_searches)
+        },
+        "weather_averages": {
+            "temperature": round(avg_temp, 1),
+            "humidity": round(avg_humidity, 1),
+            "wind_speed": round(avg_wind, 1)
+        },
+        "popular_conditions": [
+            {"condition": condition, "count": count}
+            for condition, count in weather_descriptions.most_common(5)
+        ]
+    }
+
+@app.get("/stats", response_class=HTMLResponse)
+async def stats_page(request: Request):
+    """Страница статистики"""
+    return templates.TemplateResponse("stats.html", {"request": request})
 
 @app.get("/api/health")
 async def health_check():

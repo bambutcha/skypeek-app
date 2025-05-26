@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyPeek - Статистика</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .stats-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .stats-header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+        
+        .stats-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .overview-stats {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+        
+        .stat-item {
+            flex: 1;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+            display: block;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .city-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .city-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .city-item:last-child {
+            border-bottom: none;
+        }
+        
+        .city-name {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .city-count {
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .chart-container {
+            height: 300px;
+            display: flex;
+            align-items: end;
+            justify-content: space-around;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .chart-bar {
+            background: #3498db;
+            border-radius: 4px 4px 0 0;
+            min-width: 30px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-bar:hover {
+            background: #2980b9;
+        }
+        
+        .chart-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        .chart-value {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e50;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 5px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .chart-bar:hover .chart-value {
+            opacity: 1;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .overview-stats {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .chart-container {
+                height: 200px;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stats-container">
+        <a href="/" class="back-link">← Назад к поиску погоды</a>
+        
+        <div class="stats-header">
+            <h1>📊 Статистика SkyPeek</h1>
+            <p>Аналитика использования сервиса прогноза погоды</p>
+        </div>
+        
+        <div id="loading" class="loading">
+            <p>Загрузка статистики...</p>
+        </div>
+        
+        <div id="stats-content" style="display: none;">
+            <!-- Общая статистика -->
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <h3>📈 Общая статистика</h3>
+                    <div class="overview-stats">
+                        <div class="stat-item">
+                            <span id="total-searches" class="stat-number">0</span>
+                            <span class="stat-label">Всего поисков</span>
+                        </div>
+                        <div class="stat-item">
+                            <span id="total-users" class="stat-number">0</span>
+                            <span class="stat-label">Пользователей</span>
+                        </div>
+                        <div class="stat-item">
+                            <span id="unique-cities" class="stat-number">0</span>
+                            <span class="stat-label">Городов</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-card">
+                    <h3>🏆 Топ городов</h3>
+                    <div id="top-cities" class="city-list">
+                        <!-- Заполняется через JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- График по дням -->
+            <div class="stats-card">
+                <h3>📅 Активность по дням (последние 7 дней)</h3>
+                <div id="daily-chart" class="chart-container">
+                    <!-- Заполняется через JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Загрузка и отображение статистики
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                displayStats(data);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('stats-content').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+                document.getElementById('loading').innerHTML = '<p style="color: #e74c3c;">Ошибка загрузки статистики</p>';
+            }
+        }
+        
+        function displayStats(data) {
+            // Общая статистика
+            document.getElementById('total-searches').textContent = data.overview.total_searches;
+            document.getElementById('total-users').textContent = data.overview.total_users;
+            document.getElementById('unique-cities').textContent = data.overview.unique_cities;
+            
+            // Топ городов
+            const topCitiesDiv = document.getElementById('top-cities');
+            topCitiesDiv.innerHTML = '';
+            
+            data.top_cities.slice(0, 10).forEach((city, index) => {
+                const cityItem = document.createElement('div');
+                cityItem.className = 'city-item';
+                cityItem.innerHTML = `
+                    <div>
+                        <span class="city-name">${index + 1}. ${city.city}</span>
+                        <div style="font-size: 12px; color: #7f8c8d;">
+                            Последний поиск: ${new Date(city.last_searched).toLocaleDateString('ru-RU')}
+                        </div>
+                    </div>
+                    <span class="city-count">${city.search_count}</span>
+                `;
+                topCitiesDiv.appendChild(cityItem);
+            });
+            
+            // График по дням
+            const chartDiv = document.getElementById('daily-chart');
+            chartDiv.innerHTML = '';
+            
+            if (data.daily_stats.length === 0) {
+                chartDiv.innerHTML = '<p style="text-align: center; color: #7f8c8d;">Нет данных за последние 7 дней</p>';
+                return;
+            }
+            
+            const maxSearches = Math.max(...data.daily_stats.map(day => day.searches));
+            
+            data.daily_stats.forEach(day => {
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                const height = (day.searches / maxSearches) * 200; // максимальная высота 200px
+                bar.style.height = `${height}px`;
+                
+                bar.innerHTML = `
+                    <div class="chart-value">${day.searches}</div>
+                    <div class="chart-label">${new Date(day.date).toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit'})}</div>
+                `;
+                
+                chartDiv.appendChild(bar);
+            });
+        }
+        
+        // Загружаем статистику при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadStats);
+    </script>
+</body>
+</html>

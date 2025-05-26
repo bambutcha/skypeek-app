@@ -1,6 +1,4 @@
-let lastCity = null;
-
-// Загружаем последний город при загрузке страницы
+// Загружаем только историю при загрузке страницы
 document.addEventListener('DOMContentLoaded', async function() {
     await loadLastCity();
     await loadSearchHistory();
@@ -137,8 +135,6 @@ function showSearchHistory(history) {
     // По умолчанию скрываем список
     historyList.style.display = 'none';
 }
-
-// Остальные функции (showLoading, showWeather, showError, getWeatherEmoji) остаются без изменений...
 
 function showLoading() {
     const resultDiv = document.getElementById('weather-result');
