@@ -163,7 +163,7 @@ async def get_search_statistics(db: Session = Depends(get_db)):
         ],
         "daily_stats": [
             {
-                "date": stat.date.strftime("%Y-%m-%d"),
+                "date": str(stat.date),
                 "searches": stat.searches
             }
             for stat in daily_stats
