@@ -289,6 +289,102 @@ button:hover {
     background: #2980b9;
 }
 
+.search-container {
+    position: relative;
+    flex: 1;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+}
+
+.autocomplete-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.highlighted {
+    background-color: #f8f9fa;
+}
+
+.autocomplete-item.selected {
+    background-color: #3498db;
+    color: white;
+}
+
+.city-name {
+    flex: 1;
+    font-weight: 500;
+}
+
+.city-source {
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.source-history {
+    background-color: #e8f5e8;
+    color: #2e7d2e;
+}
+
+.source-api {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.autocomplete-item.selected .source-history {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.autocomplete-item.selected .source-api {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+input.autocomplete-active {
+    border-radius: 5px 5px 0 0;
+    border-bottom-color: #3498db;
+}
+
 @keyframes slideDown {
     from {
         opacity: 0;
@@ -326,4 +422,20 @@ button:hover {
         align-items: flex-start;
         gap: 5px;
     }
+
+    .autocomplete-dropdown {
+        font-size: 14px;
+    }
+    
+    .autocomplete-item {
+        padding: 10px 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .city-source {
+        align-self: flex-end;
+    }
 }
+

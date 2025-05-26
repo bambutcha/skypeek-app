@@ -1,8 +1,167 @@
-// Загружаем только историю при загрузке страницы
+let lastCity = null;
+let autocompleteTimeout = null;
+let selectedIndex = -1;
+let autocompleteItems = [];
+
+// Загружаем последний город при загрузке страницы
 document.addEventListener('DOMContentLoaded', async function() {
     await loadLastCity();
     await loadSearchHistory();
+    setupAutocomplete();
 });
+
+// Настройка автодополнения
+function setupAutocomplete() {
+    const input = document.getElementById('city-input');
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    
+    // Обработчик ввода текста
+    input.addEventListener('input', function(e) {
+        const query = e.target.value.trim();
+        
+        if (query.length < 2) {
+            hideAutocomplete();
+            return;
+        }
+        
+        // Debounce - ждем 300ms после последнего ввода
+        clearTimeout(autocompleteTimeout);
+        autocompleteTimeout = setTimeout(() => {
+            fetchCitySuggestions(query);
+        }, 300);
+    });
+    
+    // Обработчик клавий
+    input.addEventListener('keydown', function(e) {
+        const dropdown = document.getElementById('autocomplete-dropdown');
+        
+        if (dropdown.style.display === 'none') return;
+        
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, autocompleteItems.length - 1);
+                updateSelection();
+                break;
+                
+            case 'ArrowUp':
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                updateSelection();
+                break;
+                
+            case 'Enter':
+                e.preventDefault();
+                if (selectedIndex >= 0) {
+                    selectCity(autocompleteItems[selectedIndex]);
+                } else {
+                    document.getElementById('weather-form').dispatchEvent(new Event('submit'));
+                }
+                break;
+                
+            case 'Escape':
+                hideAutocomplete();
+                break;
+        }
+    });
+    
+    // Скрываем автодополнение при клике вне
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-container')) {
+            hideAutocomplete();
+        }
+    });
+    
+    // Предотвращаем скрытие при клике на dropdown
+    dropdown.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+}
+
+// Получение предложений городов
+async function fetchCitySuggestions(query) {
+    try {
+        const response = await fetch(`/api/cities?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        
+        showAutocomplete(data.cities);
+    } catch (error) {
+        console.error('Ошибка получения предложений городов:', error);
+        hideAutocomplete();
+    }
+}
+
+// Показ автодополнения
+function showAutocomplete(cities) {
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    const input = document.getElementById('city-input');
+    
+    if (cities.length === 0) {
+        hideAutocomplete();
+        return;
+    }
+    
+    autocompleteItems = cities;
+    selectedIndex = -1;
+    
+    dropdown.innerHTML = '';
+    
+    cities.forEach((city, index) => {
+        const item = document.createElement('div');
+        item.className = 'autocomplete-item';
+        item.innerHTML = `
+            <span class="city-name">${city.name}</span>
+            <span class="city-source source-${city.source}">
+                ${city.source === 'history' ? 'Из истории' : 'Найдено'}
+            </span>
+        `;
+        
+        item.addEventListener('click', () => selectCity(city));
+        item.addEventListener('mouseenter', () => {
+            selectedIndex = index;
+            updateSelection();
+        });
+        
+        dropdown.appendChild(item);
+    });
+    
+    input.classList.add('autocomplete-active');
+    dropdown.style.display = 'block';
+}
+
+// Скрытие автодополнения
+function hideAutocomplete() {
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    const input = document.getElementById('city-input');
+    
+    dropdown.style.display = 'none';
+    input.classList.remove('autocomplete-active');
+    selectedIndex = -1;
+    autocompleteItems = [];
+}
+
+// Обновление выделения в списке
+function updateSelection() {
+    const items = document.querySelectorAll('.autocomplete-item');
+    
+    items.forEach((item, index) => {
+        if (index === selectedIndex) {
+            item.classList.add('selected');
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+}
+
+// Выбор города из автодополнения
+function selectCity(city) {
+    const input = document.getElementById('city-input');
+    input.value = city.name;
+    hideAutocomplete();
+    
+    // Автоматический поиск после выбора
+    searchWeather(city.name);
+}
 
 // Обработчик формы поиска
 document.getElementById('weather-form').addEventListener('submit', async function(e) {
@@ -14,6 +173,7 @@ document.getElementById('weather-form').addEventListener('submit', async functio
         return;
     }
     
+    hideAutocomplete();
     await searchWeather(city);
 });
 
@@ -96,7 +256,7 @@ function hideLastCitySuggestion() {
     document.getElementById('last-city-suggestion').style.display = 'none';
 }
 
-// Показ истории поиска
+// Остальные функции остаются без изменений...
 function showSearchHistory(history) {
     const historySection = document.getElementById('search-history');
     const historyList = document.getElementById('history-list');

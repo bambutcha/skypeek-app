@@ -8,6 +8,8 @@ from app.weather_service import weather_service
 from app.database import get_db
 from app.dependencies import get_or_create_user
 from app.models import User, SearchHistory
+import asyncio
+import httpx
 
 app = FastAPI(
     title="SkyPeek",
@@ -212,6 +214,64 @@ async def get_city_statistics(city_name: str, db: Session = Depends(get_db)):
         ]
     }
 
+@app.get("/api/cities")
+async def search_cities(q: str, db: Session = Depends(get_db)):
+    """Поиск городов для автодополнения"""
+    if not q or len(q.strip()) < 2:
+        return {"cities": []}
+    
+    query = q.strip()
+    
+    try:
+        # Сначала ищем в истории поиска пользователей
+        history_cities = db.query(SearchHistory.city).filter(
+            SearchHistory.city.ilike(f"%{query}%")
+        ).distinct().limit(5).all()
+        
+        history_suggestions = [{"name": city[0], "source": "history"} for city in history_cities]
+        
+        # Если мало результатов из истории, ищем через Geocoding API
+        suggestions = history_suggestions.copy()
+        
+        if len(suggestions) < 5:
+            try:
+                async with httpx.AsyncClient() as client:
+                    params = {
+                        "q": query,
+                        "limit": 8,
+                        "appid": weather_service.api_key
+                    }
+                    response = await client.get(weather_service.geocoding_base_url, params=params)
+                    response.raise_for_status()
+                    
+                    api_cities = response.json()
+                    
+                    for city_data in api_cities:
+                        city_name = city_data["name"]
+                        if city_data.get("state"):
+                            city_name += f", {city_data['state']}"
+                        if city_data.get("country"):
+                            city_name += f", {city_data['country']}"
+                        
+                        # Проверяем что такого города еще нет в suggestions
+                        if not any(s["name"].lower() == city_name.lower() for s in suggestions):
+                            suggestions.append({
+                                "name": city_name,
+                                "source": "api"
+                            })
+                        
+                        if len(suggestions) >= 8:
+                            break
+                            
+            except Exception as e:
+                print(f"Ошибка поиска городов через API: {e}")
+        
+        return {"cities": suggestions[:8]}
+        
+    except Exception as e:
+        print(f"Ошибка поиска городов: {e}")
+        return {"cities": []}
+
 @app.get("/stats", response_class=HTMLResponse)
 async def stats_page(request: Request):
     """Страница статистики"""
@@ -225,4 +285,3 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-    
