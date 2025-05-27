@@ -4,11 +4,11 @@
 
 ## Технологии
 - FastAPI
-- PostgreSQL
+- PostgreSQL/SQLite
 - HTML/CSS/JavaScript
-- Docker
+- Docker/Docker Compose
 
-## Статус разработки
+## Статус разработки (Всё выполнено)
 
 ### Основная функциональность
 - [x] Базовая структура проекта
