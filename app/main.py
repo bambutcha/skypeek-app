@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from app.weather_service import weather_service
 from app.database import get_db
-from app.dependencies import get_or_create_user
+from app.dependencies import get_or_create_user, ClearUserCacheMiddleware
 from app.models import User, SearchHistory
 import asyncio
 import httpx
@@ -16,6 +16,9 @@ app = FastAPI(
     description="Приложение для получения прогноза погоды",
     version="1.0.0"
 )
+
+# Добавляем middleware для очистки кэша пользователей
+app.add_middleware(ClearUserCacheMiddleware)
 
 # Подключаем статические файлы
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -75,6 +78,7 @@ async def get_weather(
 
 @app.get("/api/history")
 async def get_search_history(
+    request: Request,
     user: User = Depends(get_or_create_user),
     db: Session = Depends(get_db)
 ):
@@ -99,6 +103,7 @@ async def get_search_history(
 
 @app.get("/api/last-city")
 async def get_last_searched_city(
+    request: Request,
     user: User = Depends(get_or_create_user),
     db: Session = Depends(get_db)
 ):
@@ -285,3 +290,4 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+    
